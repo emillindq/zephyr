@@ -126,6 +126,13 @@ struct zsock_pollfd {
  *  the TLS handshake.
  */
 #define TLS_ALPN_LIST 7
+/** Write-only socket option to set DTLS handshake timeout. The timeout
+ *  starts at min, and upon retransmission the timeout is doubled util
+ *  max is reached. The in argument is a 'struct zsock_dtls_handshake_timeout'
+ *  in which min and max is set. Min shall be smaller than max. The unit of
+ *  the timeout is in ms.
+ */
+#define TLS_DTLS_HANDSHAKE_TIMEOUT 8
 
 /** @} */
 
@@ -150,6 +157,12 @@ struct zsock_addrinfo {
 
 	struct sockaddr _ai_addr;
 	char _ai_canonname[DNS_MAX_NAME_SIZE + 1];
+};
+
+struct zsock_dtls_handshake_timeout
+{
+	unsigned int min;
+	unsigned int max;
 };
 
 /**

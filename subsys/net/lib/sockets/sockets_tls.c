@@ -1184,6 +1184,30 @@ static int tls_opt_alpn_list_set(struct tls_context *context,
 	return 0;
 }
 
+static int tls_opt_dtls_handshake_timeout_set(struct tls_context *context,
+				 const void *optval, socklen_t optlen)
+{
+	struct zsock_dtls_handshake_timeout *val =
+		(struct zsock_dtls_handshake_timeout *)optval;
+
+	if (sizeof(struct zsock_dtls_handshake_timeout) != optlen) {
+		return -EINVAL;
+	}
+
+	if (!optval) {
+		return -EINVAL;
+	}
+
+	if (val->min > val->max) {
+		return -EINVAL;
+	}
+
+	mbedtls_ssl_conf_handshake_timeout(&context->config,
+			val->min, val->max);
+
+	return 0;
+}
+
 static int tls_opt_alpn_list_get(struct tls_context *context,
 				 void *optval, socklen_t *optlen)
 {
@@ -2127,6 +2151,10 @@ int ztls_setsockopt_ctx(struct tls_context *ctx, int level, int optname,
 
 	case TLS_ALPN_LIST:
 		err = tls_opt_alpn_list_set(ctx, optval, optlen);
+		break;
+
+	case TLS_DTLS_HANDSHAKE_TIMEOUT:
+		err = tls_opt_dtls_handshake_timeout_set(ctx, optval, optlen);
 		break;
 
 	default:
