@@ -19,6 +19,7 @@ LOG_MODULE_DECLARE(net_echo_server_sample, LOG_LEVEL_DBG);
 
 #include "common.h"
 #include "certificate.h"
+#include <drivers/gpio.h>
 
 #define MAX_CLIENT_QUEUE CONFIG_NET_SAMPLE_NUM_HANDLERS
 
@@ -64,25 +65,45 @@ static ssize_t sendall(int sock, const void *buf, size_t len)
 	return 0;
 }
 
+static bool secure = false;
+
 static int start_tcp_proto(struct data *data,
 			   struct sockaddr *bind_addr,
 			   socklen_t bind_addrlen)
 {
 	int ret;
+#undef N
+#undef L
+#undef P
+#undef F
+#define N DT_ALIAS(sw0)
+#define L DT_GPIO_LABEL(N, gpios)
+#define P DT_GPIO_PIN(N, gpios)
+#define F DT_GPIO_FLAGS(N, gpios)
 
-#if defined(CONFIG_NET_SOCKETS_SOCKOPT_TLS)
-	data->tcp.sock = socket(bind_addr->sa_family, SOCK_STREAM,
-				IPPROTO_TLS_1_2);
-#else
-	data->tcp.sock = socket(bind_addr->sa_family, SOCK_STREAM,
-				IPPROTO_TCP);
-#endif
+    const struct device *dev=device_get_binding(L);
+    gpio_pin_configure(dev, P, GPIO_INPUT | F);
+    if (1 == gpio_pin_get(dev, P))
+    {
+        data->tcp.sock = socket(bind_addr->sa_family, SOCK_STREAM,
+                    IPPROTO_TLS_1_2);
+        LOG_INF("tcp secure");
+        secure = true;
+    }
+    else
+    {
+        data->tcp.sock = socket(bind_addr->sa_family, SOCK_STREAM,
+                IPPROTO_TCP);
+        LOG_INF("tcp insecure");
+    }
 	if (data->tcp.sock < 0) {
 		LOG_ERR("Failed to create TCP socket (%s): %d", data->proto,
 			errno);
 		return -errno;
 	}
 
+    if (secure)
+    {
 #if defined(CONFIG_NET_SOCKETS_SOCKOPT_TLS)
 	sec_tag_t sec_tag_list[] = {
 		SERVER_CERTIFICATE_TAG,
@@ -99,6 +120,7 @@ static int start_tcp_proto(struct data *data,
 		ret = -errno;
 	}
 #endif
+    }
 
 	ret = bind(data->tcp.sock, bind_addr, bind_addrlen);
 	if (ret < 0) {

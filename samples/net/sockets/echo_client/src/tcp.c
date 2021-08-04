@@ -232,9 +232,6 @@ int start_tcp(void)
 
 		ret = start_tcp_proto(&conf.ipv6, (struct sockaddr *)&addr6,
 				      sizeof(addr6));
-		if (ret < 0) {
-			return ret;
-		}
 	}
 
 	if (IS_ENABLED(CONFIG_NET_IPV4)) {
@@ -245,16 +242,10 @@ int start_tcp(void)
 
 		ret = start_tcp_proto(&conf.ipv4, (struct sockaddr *)&addr4,
 				      sizeof(addr4));
-		if (ret < 0) {
-			return ret;
-		}
 	}
 
 	if (IS_ENABLED(CONFIG_NET_IPV6)) {
 		ret = send_tcp_data(&conf.ipv6);
-		if (ret < 0) {
-			return ret;
-		}
 	}
 
 	if (IS_ENABLED(CONFIG_NET_IPV4)) {

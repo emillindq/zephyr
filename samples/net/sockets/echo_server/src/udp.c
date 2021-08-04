@@ -16,6 +16,7 @@ LOG_MODULE_DECLARE(net_echo_server_sample, LOG_LEVEL_DBG);
 
 #include <net/socket.h>
 #include <net/tls_credentials.h>
+#include <drivers/gpio.h>
 
 #include "common.h"
 #include "certificate.h"
@@ -33,23 +34,42 @@ K_THREAD_DEFINE(udp6_thread_id, STACK_SIZE,
 		THREAD_PRIORITY,
 		IS_ENABLED(CONFIG_USERSPACE) ? K_USER : 0, -1);
 
+static bool secure = false;
 static int start_udp_proto(struct data *data, struct sockaddr *bind_addr,
 			   socklen_t bind_addrlen)
 {
 	int ret;
 
-#if defined(CONFIG_NET_SOCKETS_SOCKOPT_TLS)
-	data->udp.sock = socket(bind_addr->sa_family, SOCK_DGRAM,
-				IPPROTO_DTLS_1_2);
-#else
-	data->udp.sock = socket(bind_addr->sa_family, SOCK_DGRAM, IPPROTO_UDP);
-#endif
-	if (data->udp.sock < 0) {
+#undef N
+#undef L
+#undef P
+#undef F
+#define N DT_ALIAS(sw0)
+#define L DT_GPIO_LABEL(N, gpios)
+#define P DT_GPIO_PIN(N, gpios)
+#define F DT_GPIO_FLAGS(N, gpios)
+
+    const struct device *dev=device_get_binding(L);
+    gpio_pin_configure(dev, P, GPIO_INPUT | F);
+    if (1 == gpio_pin_get(dev, P))
+    {
+        data->udp.sock = socket(bind_addr->sa_family, SOCK_DGRAM,
+                IPPROTO_DTLS_1_2);
+        secure = true;
+        LOG_INF("Secure");
+    } else {
+        data->udp.sock = socket(bind_addr->sa_family, SOCK_DGRAM, IPPROTO_UDP);
+        LOG_INF("Insecure");
+    }
+
+    if (data->udp.sock < 0) {
 		NET_ERR("Failed to create UDP socket (%s): %d", data->proto,
 			errno);
 		return -errno;
 	}
 
+    if (secure)
+    {
 #if defined(CONFIG_NET_SOCKETS_SOCKOPT_TLS)
 	sec_tag_t sec_tag_list[] = {
 		SERVER_CERTIFICATE_TAG,
@@ -76,6 +96,7 @@ static int start_udp_proto(struct data *data, struct sockaddr *bind_addr,
 		ret = -errno;
 	}
 #endif
+    }
 
 	ret = bind(data->udp.sock, bind_addr, bind_addrlen);
 	if (ret < 0) {
@@ -113,8 +134,11 @@ static int process_udp(struct data *data)
 			atomic_add(&data->udp.bytes_received, received);
 		}
 
-		ret = sendto(data->udp.sock, data->udp.recv_buffer, received, 0,
-			     &client_addr, client_addr_len);
+        if (secure)
+        {
+            ret = sendto(data->udp.sock, data->udp.recv_buffer, received, 0,
+                    &client_addr, client_addr_len);
+        }
 		if (ret < 0) {
 			NET_ERR("UDP (%s): Failed to send %d", data->proto,
 				errno);

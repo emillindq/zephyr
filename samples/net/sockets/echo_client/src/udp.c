@@ -23,7 +23,7 @@ LOG_MODULE_DECLARE(net_echo_client_sample, LOG_LEVEL_DBG);
 
 #define RECV_BUF_SIZE 1280
 #define UDP_SLEEP K_MSEC(150)
-#define UDP_WAIT K_SECONDS(10)
+#define UDP_WAIT K_SECONDS(5)
 
 static APP_BMEM char recv_buf[RECV_BUF_SIZE];
 
@@ -36,6 +36,7 @@ static int send_udp_data(struct data *data)
 	} while (data->udp.expecting == 0U ||
 		 data->udp.expecting > data->udp.mtu);
 
+    LOG_INF("calling send");
 	ret = send(data->udp.sock, lorem_ipsum, data->udp.expecting, 0);
 
 	LOG_DBG("%s UDP: Sent %d bytes", data->proto, data->udp.expecting);
@@ -140,6 +141,7 @@ static int process_udp_proto(struct data *data)
 	received = recv(data->udp.sock, recv_buf, sizeof(recv_buf),
 			MSG_DONTWAIT);
 
+    LOG_INF("Received returned %d", received);
 	if (received == 0) {
 		return -EIO;
 	}
@@ -215,9 +217,6 @@ int start_udp(void)
 
 	if (IS_ENABLED(CONFIG_NET_IPV6)) {
 		ret = send_udp_data(&conf.ipv6);
-		if (ret < 0) {
-			return ret;
-		}
 	}
 
 	if (IS_ENABLED(CONFIG_NET_IPV4)) {

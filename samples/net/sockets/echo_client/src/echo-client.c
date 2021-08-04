@@ -140,16 +140,10 @@ static int start_udp_and_tcp(void)
 
 	if (IS_ENABLED(CONFIG_NET_TCP)) {
 		ret = start_tcp();
-		if (ret < 0) {
-			return ret;
-		}
 	}
 
 	if (IS_ENABLED(CONFIG_NET_UDP)) {
 		ret = start_udp();
-		if (ret < 0) {
-			return ret;
-		}
 	}
 
 	prepare_fds();
@@ -157,24 +151,26 @@ static int start_udp_and_tcp(void)
 	return 0;
 }
 
+static bool first = true;
 static int run_udp_and_tcp(void)
 {
 	int ret;
 
 	wait();
+    LOG_INF("exit poll");
+    /*if (first)*/
+    /*{*/
+        /*LOG_INF("sleepingGGGGGGGGGGGGGGG!!!!");*/
+        /*first = false;*/
+        /*k_msleep(10);*/
+    /*}*/
 
 	if (IS_ENABLED(CONFIG_NET_TCP)) {
 		ret = process_tcp();
-		if (ret < 0) {
-			return ret;
-		}
 	}
 
 	if (IS_ENABLED(CONFIG_NET_UDP)) {
 		ret = process_udp();
-		if (ret < 0) {
-			return ret;
-		}
 	}
 
 	return 0;
@@ -286,7 +282,8 @@ static int start_client(void)
 
 		ret = start_udp_and_tcp();
 
-		while (connected && (ret == 0)) {
+		while (1) {
+            k_msleep(200);
 			ret = run_udp_and_tcp();
 
 			if (iterations > 0) {
