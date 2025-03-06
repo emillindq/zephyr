@@ -28,6 +28,9 @@ int main(void)
 		LOG_ERR("Device not ready, aborting test");
 		return 0;
 	}
+    lv_disp_t *disp = lv_disp_get_default();
+    lv_disp_set_rotation(disp, LV_DISP_ROTATION_90);
+    display_set_orientation(display_dev, DISPLAY_ORIENTATION_ROTATED_90);
 
 #if defined(CONFIG_LV_Z_DEMO_MUSIC)
 	lv_demo_music();

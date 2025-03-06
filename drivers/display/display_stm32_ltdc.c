@@ -292,6 +292,11 @@ swap:
 		k_sem_take(&data->sem, K_FOREVER);
 	}
 
+    if (pend_buf == NULL || old == NULL)
+    {
+        return 0;
+    }
+
 	/* Safe to copy the new frame to the old one */
 
 #if DT_INST_NODE_HAS_PROP(0, ext_sdram) && CONFIG_STM32_LTDC_INTERMEDIATE_BUF_SIZE > 0
