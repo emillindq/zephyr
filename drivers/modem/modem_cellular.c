@@ -2373,7 +2373,11 @@ int modem_cellular_init(const struct device *dev)
 
 	modem_cellular_init_apn(data);
 
-	return pm_device_driver_init(dev, modem_cellular_pm_action);
+	int ret = pm_device_driver_init(dev, modem_cellular_pm_action);
+	if (ret == 0) {
+		pm_device_init_suspended(dev);
+	}
+	return ret;
 }
 
 /*
